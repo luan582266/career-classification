@@ -1,7 +1,7 @@
 """Cây quyết định ID3 cho dữ liệu phân loại rời rạc.
 
-Mô-đun không phụ thuộc vào pandas hoặc schema cụ thể. Phần gọi mô-đun cần
-truyền ``feature_order`` theo đúng thứ tự khai báo tại ``src/schema.py``.
+Các thuật toán không phụ thuộc vào pandas. Nếu không truyền ``feature_order``,
+mô-đun dùng ``schema.FEATURES`` (thứ tự khai báo tại ``src/schema.py``).
 Thứ tự này được dùng để phá vỡ thế hòa khi nhiều đặc trưng có cùng
 Information Gain.
 """
@@ -90,16 +90,33 @@ def information_gain(
     return entropy(labels) - weighted_entropy
 
 
+def _schema_feature_order() -> tuple[str, ...]:
+    """Lấy thứ tự đặc trưng từ schema (import muộn để tránh kéo pandas khi không cần)."""
+    from .schema import FEATURES
+
+    return tuple(FEATURES)
+
+
 def select_best_feature(
     rows: Sequence[Record],
     labels: Sequence[Label],
-    feature_order: Sequence[str],
+    feature_order: Sequence[str] | None = None,
 ) -> str:
     """Chọn đặc trưng có gain cao nhất theo thứ tự schema khi hòa điểm.
 
-    Các đặc trưng được duyệt đúng theo ``feature_order``. Khi gain bằng nhau
-    trong sai số số thực, đặc trưng xuất hiện trước sẽ được giữ lại.
+    Các đặc trưng được duyệt đúng theo ``feature_order`` (mặc định là
+    ``schema.FEATURES``). Khi gain bằng nhau trong sai số số thực, đặc trưng
+    xuất hiện trước sẽ được giữ lại.
     """
+    return _select_best_feature_with_gain(rows, labels, feature_order)[0]
+
+
+def _select_best_feature_with_gain(
+    rows: Sequence[Record],
+    labels: Sequence[Label],
+    feature_order: Sequence[str] | None = None,
+) -> tuple[str, float]:
+    """Giống ``select_best_feature`` nhưng trả thêm gain để tránh tính lại."""
     _validate_rows_and_labels(rows, labels)
     ordered_features = tuple(feature_order)
     if not ordered_features:
@@ -116,7 +133,7 @@ def select_best_feature(
             best_feature = feature
             best_gain = gain
 
-    return best_feature
+    return best_feature, best_gain
 
 
 class ID3Classifier:
@@ -124,7 +141,7 @@ class ID3Classifier:
 
     def __init__(
         self,
-        feature_order: Sequence[str],
+        feature_order: Sequence[str] | None = None,
         *,
         min_gain: float = _EPSILON,
         max_depth: int | None = None,
@@ -216,7 +233,7 @@ class ID3Classifier:
 
         feature = select_best_feature(rows, labels, available_features)
         gain = information_gain(rows, labels, feature)
-        if gain <= self.min_gain + _EPSILON:
+        if gain < self.min_gain + _EPSILON:
             return node
 
         node.feature = feature

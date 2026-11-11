@@ -22,7 +22,7 @@ Tài liệu này mô tả chi tiết cấu trúc bộ dữ liệu khảo sát đ
 
 Toàn bộ **14 đặc trưng định lượng** được đánh giá theo thang đo **Likert 5 mức độ** (số nguyên từ `1` đến `5`), chia thành hai nhóm thang đo cụ thể theo bản chất câu hỏi khảo sát:
 
-### 2.1. Nhóm Năng lực / Kỹ năng (8 đặc trưng: `1` Rất kém $\rightarrow$ `5` Giỏi)
+### 2.1. Nhóm Năng lực / Kỹ năng (8 đặc trưng: `1` Rất kém ->  `5` Giỏi)
 
 Áp dụng cho 8 cột: `Khả năng tư duy logic`, `Năng lực tính toán và phân tích số liệu`, `Công nghệ`, `Sáng tạo`, `Giao tiếp`, `Tổ chức`, `Cẩn thận`, `Đồng cảm`.
 
@@ -34,7 +34,7 @@ Toàn bộ **14 đặc trưng định lượng** được đánh giá theo thang
 | **4** | **Khá** | Thực hiện tốt, chủ động giải quyết vấn đề và vận dụng kỹ năng hiệu quả trong nhiều tình huống. | `high` (Cao: 4–5) |
 | **5** | **Giỏi** | Năng lực nổi trội, thành thạo cao, có thể xử lý tình huống phức tạp và là thế mạnh cốt lõi cá nhân. | `high` (Cao: 4–5) |
 
-### 2.2. Nhóm Sở thích nghề nghiệp RIASEC (6 đặc trưng: `1` Rất không thích $\rightarrow$ `5` Rất thích)
+### 2.2. Nhóm Sở thích nghề nghiệp RIASEC (6 đặc trưng: `1` Rất không thích -> `5` Rất thích)
 
 Áp dụng cho 6 cột: `RIASEC_R_Thuc_hanh`, `RIASEC_I_Nghien_cuu`, `RIASEC_A_Nghe_thuat`, `RIASEC_S_Xa_hoi`, `RIASEC_E_Thuyet_phuc`, `RIASEC_C_Quy_cu`.
 
@@ -46,7 +46,7 @@ Toàn bộ **14 đặc trưng định lượng** được đánh giá theo thang
 | **4** | **Thích** | Có hứng thú rõ rệt, chủ động tìm hiểu và cảm thấy thoải mái khi làm các công việc thuộc nhóm này. | `high` (Cao: 4–5) |
 | **5** | **Rất thích** | Đam mê mạnh mẽ, hào hứng khi thực hiện và ưu tiên lựa chọn làm định hướng nghề nghiệp lâu dài. | `high` (Cao: 4–5) |
 
-> **Quy tắc tiền xử lý điểm số**: Trong bước tiền xử lý (`SurveyPreprocessor`), các ô trống (nếu có) được điền bằng trung vị (`median`) của tập huấn luyện, sau đó rời rạc hóa thành 3 mức: `low` ($\le 2$), `medium` ($3$), và `high` ($\ge 4$) để phục vụ thuật toán Cây quyết định ID3 và Categorical Naive Bayes.
+> **Quy tắc tiền xử lý điểm số**: Trong bước tiền xử lý (`SurveyPreprocessor`), các ô trống (nếu có) được điền bằng trung vị (`median`) của tập huấn luyện, sau đó rời rạc hóa thành 3 mức: `low` (2), `medium` (3), và `high` (4) để phục vụ thuật toán Cây quyết định ID3 và Categorical Naive Bayes.
 
 ---
 
