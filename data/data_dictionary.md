@@ -7,7 +7,7 @@ Tài liệu này mô tả chi tiết cấu trúc bộ dữ liệu khảo sát đ
 ## 1. Tổng quan bộ dữ liệu
 
 - **Đường dẫn tệp gốc**: `data/raw/survey.csv`
-- **Số lượng mẫu khảo sát**: 190 phản hồi thực tế
+- **Số lượng mẫu khảo sát**: 4.000 bản ghi (chia đều 1.000 mẫu cho mỗi nhóm nghề `N1`–`N4`)
 - **Tổng số cột**: 19 cột, bao gồm:
   - **16 đặc trưng đầu vào (`FEATURES`)**:
     - 8 đặc trưng năng lực & kỹ năng cá nhân (thang đo Likert 1–5)
@@ -70,7 +70,7 @@ Mô hình **RIASEC** do nhà tâm lý học **John L. Holland** phát triển, p
 ### 4.1. Nhóm 8 đặc trưng Năng lực & Kỹ năng mềm (Điểm nguyên 1–5)
 
 | STT | Tên cột | Kiểu dữ liệu | Miền giá trị | Mô tả ý nghĩa |
-|:---:|---|---|:---:|---|
+|:---:|---|:---:|:---:|---|
 | 1 | `Khả năng tư duy logic` | `int64` | `1..5` | Khả năng suy luận có hệ thống, phân tách vấn đề, tìm quy luật nguyên nhân – kết quả. |
 | 2 | `Năng lực tính toán và phân tích số liệu` | `int64` | `1..5` | Khả năng làm việc với con số, thống kê, bảng biểu, công thức toán học và tài chính. |
 | 3 | `Công nghệ` | `int64` | `1..5` | Mức độ nhạy bén và hứng thú sử dụng phần mềm, hệ thống kỹ thuật số, công cụ kỹ thuật mới. |
@@ -83,7 +83,7 @@ Mô hình **RIASEC** do nhà tâm lý học **John L. Holland** phát triển, p
 ### 4.2. Nhóm 6 đặc trưng Sở thích RIASEC (Điểm nguyên 1–5)
 
 | STT | Tên cột | Kiểu dữ liệu | Miền giá trị | Mô tả ý nghĩa |
-|:---:|---|---|:---:|---|
+|:---:|---|:---:|:---:|---|
 | 9 | `RIASEC_R_Thuc_hanh` | `int64` | `1..5` | Điểm xu hướng Thực hành – Kỹ thuật (*Realistic*). |
 | 10 | `RIASEC_I_Nghien_cuu` | `int64` | `1..5` | Điểm xu hướng Nghiên cứu – Phân tích (*Investigative*). |
 | 11 | `RIASEC_A_Nghe_thuat` | `int64` | `1..5` | Điểm xu hướng Nghệ thuật – Sáng tạo (*Artistic*). |
@@ -112,7 +112,7 @@ Mô hình **RIASEC** do nhà tâm lý học **John L. Holland** phát triển, p
 
 | Mã nhóm (`Nhóm nghề`) | Tên nhóm nghề (`Tên nhóm nghề`) | Số mẫu | Các nghề cụ thể trực thuộc (`Nghề cụ thể`) |
 |:---:|---|:---:|---|
-| **`N1`** | Công nghệ - Kỹ thuật - Phân tích | 50 | `Lập trình viên` (10), `Chuyên viên phân tích dữ liệu` (8), `Kiểm thử phần mềm` (8), `Kỹ sư điện` (8), `Kỹ sư tự động hóa` (8), `Kỹ sư cơ khí` (8) |
-| **`N2`** | Kinh doanh - Tài chính - Quản lý | 50 | `Chuyên viên kinh doanh` (10), `Chuyên viên phân tích tài chính` (10), `Kế toán viên` (10), `Chuyên viên vận hành` (10), `Chuyên viên logistics` (10) |
-| **`N3`** | Sáng tạo - Truyền thông - Thiết kế | 40 | `Thiết kế UI/UX` (8), `Sáng tạo nội dung` (8), `Digital Marketing` (8), `Thiết kế đồ họa` (8), `Dựng phim - Biên tập video` (8) |
-| **`N4`** | Giáo dục – Xã hội – Hỗ trợ con người | 50 | `Sư phạm` (10), `Tâm lý học` (10), `Công tác xã hội` (10), `Quản trị nhân lực` (10), `Điều dưỡng` (10) |
+| **`N1`** | Công nghệ - Kỹ thuật - Phân tích | 1.000 | `Lập trình viên` (200), `Chuyên viên phân tích dữ liệu` (160), `Kiểm thử phần mềm` (160), `Kỹ sư điện` (160), `Kỹ sư tự động hóa` (160), `Kỹ sư cơ khí` (160) |
+| **`N2`** | Kinh doanh - Tài chính - Quản lý | 1.000 | `Chuyên viên kinh doanh` (200), `Chuyên viên phân tích tài chính` (200), `Kế toán viên` (200), `Chuyên viên vận hành` (200), `Chuyên viên logistics` (200) |
+| **`N3`** | Sáng tạo - Truyền thông - Thiết kế | 1.000 | `Thiết kế UI/UX` (200), `Sáng tạo nội dung` (200), `Digital Marketing` (200), `Thiết kế đồ họa` (200), `Dựng phim - Biên tập video` (200) |
+| **`N4`** | Giáo dục – Xã hội – Hỗ trợ con người | 1.000 | `Sư phạm` (200), `Tâm lý học` (200), `Công tác xã hội` (200), `Quản trị nhân lực` (200), `Điều dưỡng` (200) |

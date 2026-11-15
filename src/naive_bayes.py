@@ -35,6 +35,9 @@ Record: TypeAlias = Mapping[str, FeatureValue]
 # đúng công thức mà không làm sai lệch cardinality của các danh mục đã biết.
 UNKNOWN_VALUE = "__unknown__"
 
+# Sai số nhỏ khi so sánh điểm log-joint dạng số thực (dùng khi phá thế hòa).
+_EPSILON = 1e-12
+
 
 def _schema_feature_order() -> tuple[str, ...]:
     """Lấy thứ tự 16 đặc trưng từ schema (import muộn để tránh phụ thuộc vòng)."""
@@ -82,8 +85,10 @@ class CategoricalNaiveBayes:
             raise ValueError("feature_order phải chứa ít nhất một đặc trưng.")
         if len(set(self.feature_order)) != len(self.feature_order):
             raise ValueError("feature_order không được chứa đặc trưng trùng lặp.")
-        if alpha < 0:
-            raise ValueError("alpha (hệ số làm trơn Laplace) phải >= 0.")
+        # alpha phải > 0: với alpha = 0 các tổ hợp (giá trị, lớp) chưa từng gặp
+        # (kể cả __unknown__) có xác suất 0 và log(0) sẽ làm predict bị lỗi.
+        if alpha <= 0:
+            raise ValueError("alpha (hệ số làm trơn Laplace) phải > 0.")
 
         self.alpha = alpha
 
@@ -205,11 +210,11 @@ class CategoricalNaiveBayes:
 
             log P(c | x) ∝ log P(c) + Σ_j log P(x_j | c)
 
-        Lớp dự đoán cuối cùng (ở Tuần 2) sẽ là lớp có ``compute_log_joint_score``
+        Lớp dự đoán cuối cùng (``predict``) là lớp có ``compute_log_joint_score``
         lớn nhất trong 4 nhóm nghề N1-N4.
 
-        Hàm này yêu cầu mô hình đã được huấn luyện (``fit`` sẽ hoàn thiện ở
-        Tuần 2) để có sẵn ``log_priors_`` và các bảng tần suất
+        Hàm này yêu cầu mô hình đã được huấn luyện (``fit``) để có sẵn
+        ``log_priors_`` và các bảng tần suất
         ``feature_value_counts_`` / ``feature_class_totals_`` /
         ``feature_cardinality_``.
         """
@@ -273,10 +278,19 @@ class CategoricalNaiveBayes:
             if missing_features:
                 missing_text = ", ".join(missing_features)
                 raise KeyError(f"Bản ghi thiếu đặc trưng: {missing_text}.")
+            # __unknown__ được dành riêng cho danh mục chưa từng gặp lúc dự đoán,
+            # nên không được xuất hiện như một giá trị thật trong dữ liệu huấn luyện.
+            if any(row[f] == UNKNOWN_VALUE for f in self.feature_order):
+                raise ValueError(
+                    f"Giá trị '{UNKNOWN_VALUE}' được dành riêng, "
+                    "không được dùng trong dữ liệu huấn luyện."
+                )
 
         self.class_counts_ = self.compute_class_counts(labels)
         # Sắp xếp để classes_ có thứ tự xác định (N1 < N2 < N3 < N4), dùng
         # làm thứ tự duyệt khi phá vỡ thế hòa (tie-breaking) trong predict().
+        # Lưu ý: sắp xếp theo chuỗi nên chỉ đúng với nhãn một chữ số (N1-N4);
+        # nếu có nhãn như N10 thì "N10" sẽ đứng trước "N2".
         self.classes_ = tuple(sorted(self.class_counts_, key=str))
         self.log_priors_ = self.compute_log_priors(self.class_counts_)
 
@@ -341,10 +355,16 @@ class CategoricalNaiveBayes:
         if not self.is_fitted:
             raise RuntimeError("Mô hình chưa được huấn luyện. Hãy gọi fit() trước.")
 
-        log_scores = {
-            label: self.compute_log_joint_score(row, label) for label in self.classes_
-        }
-        return max(self.classes_, key=lambda label: log_scores[label])
+        # Duyệt theo thứ tự classes_ và chỉ đổi lớp tốt nhất khi điểm cao hơn
+        # rõ rệt (vượt sai số float), nên khi hòa lớp đứng trước được giữ lại.
+        best_label = self.classes_[0]
+        best_score = self.compute_log_joint_score(row, best_label)
+        for label in self.classes_[1:]:
+            score = self.compute_log_joint_score(row, label)
+            if score > best_score + _EPSILON:
+                best_label = label
+                best_score = score
+        return best_label
 
     def predict(self, rows: Iterable[Record]) -> list[Label]:
         """Dự đoán nhóm nghề có điểm log-joint cao nhất cho nhiều bản ghi."""

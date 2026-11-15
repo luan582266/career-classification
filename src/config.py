@@ -31,6 +31,8 @@ ID3_MODEL_PATH: Path = MODELS_DIR / "id3.joblib"
 NAIVE_BAYES_MODEL_PATH: Path = MODELS_DIR / "naive_bayes.joblib"
 NB_MODEL_PATH: Path = NAIVE_BAYES_MODEL_PATH
 MANIFEST_PATH: Path = MODELS_DIR / "manifest.json"
+# Bộ tiền xử lý đã fit (median, mode, bảng mã hóa danh mục) để tái sử dụng khi dự đoán
+PREPROCESSOR_PATH: Path = MODELS_DIR / "preprocessor.json"
 
 # Đường dẫn thư mục báo cáo và kết quả đánh giá
 REPORTS_DIR: Path = BASE_DIR / "reports"

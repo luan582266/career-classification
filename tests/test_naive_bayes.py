@@ -187,11 +187,15 @@ class TestPredict:
         prediction = toy_model.predict([{"mon": "Ly", "ky": "C"}])
         assert prediction[0] in toy_model.classes_
 
-    def test_unknown_value_not_double_counted_against_known_categories(
+    def test_unknown_slot_is_reserved_in_cardinality_only(
         self, toy_model: CategoricalNaiveBayes
     ) -> None:
-        # Giá trị __unknown__ không được trùng với bất kỳ danh mục đã biết.
-        assert UNKNOWN_VALUE not in toy_model.feature_known_values_["mon"]
+        # __unknown__ không nằm trong danh mục đã biết, nhưng đã được dự trù
+        # đúng 1 slot trong cardinality (số giá trị quan sát + 1).
+        for feature in ("mon", "ky"):
+            known = toy_model.feature_known_values_[feature]
+            assert UNKNOWN_VALUE not in known
+            assert toy_model.feature_cardinality_[feature] == len(known) + 1
 
     def test_predict_before_fit_raises(self) -> None:
         model = CategoricalNaiveBayes(feature_order=["mon"])
@@ -212,6 +216,102 @@ class TestPredict:
         proba = model.predict_proba([{"mon": "Pho_thong_khong_ton_tai"}])[0]
         assert proba["N1"] == pytest.approx(proba["N2"])
         assert model.predict([{"mon": "Pho_thong_khong_ton_tai"}]) == ["N1"]
+
+
+# ----------------------------------------------------------------------
+# 4b. Kiểm chứng công thức bằng tay, giá trị lạ, chống underflow
+# ----------------------------------------------------------------------
+class TestHandComputedScores:
+    # TOY: P(N1) = 1/2; |V| = 2 giá trị quan sát + 1 slot unknown = 3;
+    # mỗi lớp có 3 mẫu; alpha = 1.
+    def test_log_joint_score_matches_hand_computation(
+        self, toy_model: CategoricalNaiveBayes
+    ) -> None:
+        record = {"mon": "Toan", "ky": "A"}
+        # P(Toan|N1) = (3+1)/(3+3) = 4/6 ; P(A|N1) = (2+1)/(3+3) = 3/6
+        expected_n1 = math.log(1 / 2) + math.log(4 / 6) + math.log(3 / 6)
+        # P(Toan|N2) = (0+1)/(3+3) = 1/6 ; P(A|N2) = (1+1)/(3+3) = 2/6
+        expected_n2 = math.log(1 / 2) + math.log(1 / 6) + math.log(2 / 6)
+        assert toy_model.compute_log_joint_score(record, "N1") == pytest.approx(expected_n1)
+        assert toy_model.compute_log_joint_score(record, "N2") == pytest.approx(expected_n2)
+
+    def test_predict_proba_matches_hand_computation(
+        self, toy_model: CategoricalNaiveBayes
+    ) -> None:
+        proba = toy_model.predict_proba([{"mon": "Toan", "ky": "A"}])[0]
+        s1 = (1 / 2) * (4 / 6) * (3 / 6)
+        s2 = (1 / 2) * (1 / 6) * (2 / 6)
+        assert proba["N1"] == pytest.approx(s1 / (s1 + s2))
+        assert proba["N2"] == pytest.approx(s2 / (s1 + s2))
+
+    def test_unknown_value_uses_laplace_formula(
+        self, toy_model: CategoricalNaiveBayes
+    ) -> None:
+        # Giá trị lạ: count = 0 => P = alpha / (n_c + alpha * (|V|+1)) = 1/6.
+        record = {"mon": "Ly", "ky": "C"}
+        expected = math.log(1 / 2) + math.log(1 / 6) + math.log(1 / 6)
+        assert toy_model.compute_log_joint_score(record, "N1") == pytest.approx(expected)
+        assert toy_model.compute_log_joint_score(record, "N2") == pytest.approx(expected)
+
+    def test_missing_feature_at_predict_is_treated_as_unknown(
+        self, toy_model: CategoricalNaiveBayes
+    ) -> None:
+        with_missing = toy_model.compute_log_joint_score({"mon": "Toan"}, "N1")
+        explicit_unknown = toy_model.compute_log_joint_score(
+            {"mon": "Toan", "ky": UNKNOWN_VALUE}, "N1"
+        )
+        assert with_missing == pytest.approx(explicit_unknown)
+
+    def test_log_space_avoids_underflow_with_many_features(self) -> None:
+        # 500 đặc trưng, mỗi đặc trưng có 2 giá trị; tích trực tiếp các xác suất
+        # sẽ về 0.0 trong float, nhưng điểm log phải hữu hạn.
+        features = [f"f{i}" for i in range(500)]
+        rows = [{f: "a" for f in features}, {f: "b" for f in features}]
+        model = CategoricalNaiveBayes(feature_order=features, alpha=1.0)
+        model.fit(rows, ["N1", "N2"])
+
+        score = model.compute_log_joint_score(rows[0], "N1")
+        assert math.isfinite(score)
+        assert score < -300  # tương đương xác suất nhỏ hơn 1e-130
+        proba = model.predict_proba([rows[0]])[0]
+        assert all(math.isfinite(v) for v in proba.values())
+        assert sum(proba.values()) == pytest.approx(1.0)
+        assert model.predict([rows[0]]) == ["N1"]
+
+
+class TestValidation:
+    @pytest.mark.parametrize("alpha", [0, 0.0, -1.0])
+    def test_constructor_requires_positive_alpha(self, alpha: float) -> None:
+        with pytest.raises(ValueError):
+            CategoricalNaiveBayes(feature_order=["mon"], alpha=alpha)
+
+    def test_predict_with_unseen_value_does_not_crash_for_small_alpha(self) -> None:
+        model = CategoricalNaiveBayes(feature_order=["mon"], alpha=1e-9)
+        model.fit([{"mon": "Toan"}, {"mon": "Van"}], ["N1", "N2"])
+        assert model.predict([{"mon": "Ly"}])[0] in model.classes_
+
+    def test_rejects_empty_feature_order(self) -> None:
+        with pytest.raises(ValueError):
+            CategoricalNaiveBayes(feature_order=[])
+
+    def test_rejects_duplicate_feature_order(self) -> None:
+        with pytest.raises(ValueError):
+            CategoricalNaiveBayes(feature_order=["mon", "mon"])
+
+    def test_compute_log_priors_rejects_zero_total(self) -> None:
+        with pytest.raises(ValueError):
+            CategoricalNaiveBayes.compute_log_priors({"N1": 0})
+
+    def test_log_joint_score_rejects_unknown_class(
+        self, toy_model: CategoricalNaiveBayes
+    ) -> None:
+        with pytest.raises(KeyError):
+            toy_model.compute_log_joint_score({"mon": "Toan", "ky": "A"}, "N9")
+
+    def test_fit_rejects_reserved_unknown_value(self) -> None:
+        model = CategoricalNaiveBayes(feature_order=["mon"])
+        with pytest.raises(ValueError):
+            model.fit([{"mon": UNKNOWN_VALUE}, {"mon": "Van"}], ["N1", "N2"])
 
 
 # ----------------------------------------------------------------------

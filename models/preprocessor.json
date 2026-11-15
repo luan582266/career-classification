@@ -1,0 +1,73 @@
+{
+  "numeric_features": [
+    "Khả năng tư duy logic",
+    "Năng lực tính toán và phân tích số liệu",
+    "Công nghệ",
+    "Sáng tạo",
+    "Giao tiếp",
+    "Tổ chức",
+    "Cẩn thận",
+    "Đồng cảm",
+    "RIASEC_R_Thuc_hanh",
+    "RIASEC_I_Nghien_cuu",
+    "RIASEC_A_Nghe_thuat",
+    "RIASEC_S_Xa_hoi",
+    "RIASEC_E_Thuyet_phuc",
+    "RIASEC_C_Quy_cu"
+  ],
+  "categorical_features": [
+    "Đối tượng công việc",
+    "Môi trường"
+  ],
+  "numeric_medians": {
+    "Khả năng tư duy logic": 3,
+    "Năng lực tính toán và phân tích số liệu": 3,
+    "Công nghệ": 3,
+    "Sáng tạo": 4,
+    "Giao tiếp": 4,
+    "Tổ chức": 4,
+    "Cẩn thận": 4,
+    "Đồng cảm": 3,
+    "RIASEC_R_Thuc_hanh": 2,
+    "RIASEC_I_Nghien_cuu": 3,
+    "RIASEC_A_Nghe_thuat": 3,
+    "RIASEC_S_Xa_hoi": 3,
+    "RIASEC_E_Thuyet_phuc": 3,
+    "RIASEC_C_Quy_cu": 4
+  },
+  "categorical_modes": {
+    "Đối tượng công việc": "Máy móc - thiết bị",
+    "Môi trường": "Tương tác - hợp tác"
+  },
+  "category_mappings": {
+    "Đối tượng công việc": {
+      "Bệnh nhân - y tế": 0,
+      "Chuỗi cung ứng - hàng hóa": 1,
+      "Con người - tri thức": 2,
+      "Cộng đồng - yếu thế": 3,
+      "Dữ liệu": 4,
+      "Hình ảnh - Ấn phẩm": 5,
+      "Học sinh - sinh viên": 6,
+      "Khách hàng - thị trường": 7,
+      "Máy móc - thiết bị": 8,
+      "Nhân sự - tổ chức": 9,
+      "Nội dung - Truyền thông": 10,
+      "Phần mềm": 11,
+      "Quy trình - hoạt động": 12,
+      "Sản phẩm số - Giao diện": 13,
+      "Sổ sách - chứng từ": 14,
+      "Thương hiệu - Quảng cáo": 15,
+      "Tài chính - số liệu": 16,
+      "Tâm lý - hành vi": 17,
+      "Video - Âm thanh": 18
+    },
+    "Môi trường": {
+      "Có quy trình": 0,
+      "Cạnh tranh - mục tiêu": 1,
+      "Linh hoạt - sáng tạo": 2,
+      "Phân tích chuyên sâu": 3,
+      "Tương tác - hợp tác": 4,
+      "Ổn định - rõ ràng": 5
+    }
+  }
+}
