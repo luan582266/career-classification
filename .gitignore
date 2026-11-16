@@ -2,3 +2,7 @@
 models/*.joblib
 models/*.pkl
 !data/processed/**
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
