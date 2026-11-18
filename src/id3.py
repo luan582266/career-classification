@@ -1,13 +1,4 @@
-"""Cây quyết định ID3 cho dữ liệu phân loại rời rạc.
-<<<<<<< Updated upstream
-
-Các thuật toán không phụ thuộc vào pandas. Nếu không truyền ``feature_order``,
-mô-đun dùng ``schema.FEATURES`` (thứ tự khai báo tại ``src/schema.py``).
-Thứ tự này được dùng để phá vỡ thế hòa khi nhiều đặc trưng có cùng
-Information Gain.
-=======
->>>>>>> Stashed changes
-"""
+"""Cây quyết định ID3 cho dữ liệu phân loại rời rạc."""
 from __future__ import annotations
 
 from collections import Counter
@@ -58,11 +49,11 @@ def entropy(labels: Iterable[Label]) -> float:
 
     counts = Counter(label_list)
     total = len(label_list)
-    return -sum(
-        (count / total) * log2(count / total)
-        for count in counts.values()
-        if count
-    )
+    result = 0.0
+    for count in counts.values():
+        probability = count / total
+        result -= probability * log2(probability)
+    return result
 
 
 def information_gain(
@@ -85,10 +76,10 @@ def information_gain(
         partitions.setdefault(row[feature], []).append(label)
 
     total = len(labels)
-    weighted_entropy = sum(
-        (len(partition_labels) / total) * entropy(partition_labels)
-        for partition_labels in partitions.values()
-    )
+    weighted_entropy = 0.0
+    for partition_labels in partitions.values():
+        weight = len(partition_labels) / total
+        weighted_entropy += weight * entropy(partition_labels)
     return entropy(labels) - weighted_entropy
 
 
@@ -110,7 +101,8 @@ def select_best_feature(
     ``schema.FEATURES``). Khi gain bằng nhau trong sai số số thực, đặc trưng
     xuất hiện trước sẽ được giữ lại.
     """
-    return _select_best_feature_with_gain(rows, labels, feature_order)[0]
+    best_feature, _ = _select_best_feature_with_gain(rows, labels, feature_order)
+    return best_feature
 
 
 def _select_best_feature_with_gain(
@@ -120,7 +112,10 @@ def _select_best_feature_with_gain(
 ) -> tuple[str, float]:
     """Giống ``select_best_feature`` nhưng trả thêm gain để tránh tính lại."""
     _validate_rows_and_labels(rows, labels)
-    ordered_features = tuple(feature_order)
+    if feature_order is None:
+        ordered_features = _schema_feature_order()
+    else:
+        ordered_features = tuple(feature_order)
     if not ordered_features:
         raise ValueError("feature_order phải chứa ít nhất một đặc trưng.")
     if len(set(ordered_features)) != len(ordered_features):
@@ -147,8 +142,12 @@ class ID3Classifier:
         *,
         min_gain: float = _EPSILON,
         max_depth: int | None = None,
+        min_samples_split: int = 2,
     ) -> None:
-        self.feature_order = tuple(feature_order)
+        if feature_order is None:
+            self.feature_order = _schema_feature_order()
+        else:
+            self.feature_order = tuple(feature_order)
         if not self.feature_order:
             raise ValueError("feature_order phải chứa ít nhất một đặc trưng.")
         if len(set(self.feature_order)) != len(self.feature_order):
@@ -157,9 +156,16 @@ class ID3Classifier:
             raise ValueError("min_gain phải lớn hơn hoặc bằng 0.")
         if max_depth is not None and max_depth < 0:
             raise ValueError("max_depth phải lớn hơn hoặc bằng 0 hoặc là None.")
+        if (
+            isinstance(min_samples_split, bool)
+            or not isinstance(min_samples_split, int)
+            or min_samples_split < 2
+        ):
+            raise ValueError("min_samples_split phải là số nguyên lớn hơn hoặc bằng 2.")
 
         self.min_gain = min_gain
         self.max_depth = max_depth
+        self.min_samples_split = min_samples_split
         self.root: Node | None = None
 
     def fit(
@@ -211,6 +217,30 @@ class ID3Classifier:
         """Dự đoán nhãn cho nhiều bản ghi theo thứ tự đầu vào."""
         return [self.predict_one(row) for row in rows]
 
+    def to_dict(self) -> dict[str, object]:
+        """Xuất cây thành từ điển lồng nhau độc lập để lưu trữ.
+
+        Mỗi nút lưu nhãn đa số, đặc trưng, số lượng từng nhãn, độ sâu và
+        các nhánh con. Khóa nhánh giữ nguyên kiểu giá trị của đặc trưng.
+        """
+        if self.root is None:
+            raise RuntimeError("Mô hình chưa được huấn luyện. Hãy gọi fit() trước.")
+
+        def export_node(node: Node) -> dict[str, object]:
+            children = {}
+            for value, child in node.children.items():
+                children[value] = export_node(child)
+
+            return {
+                "prediction": node.prediction,
+                "feature": node.feature,
+                "class_counts": dict(node.class_counts),
+                "depth": node.depth,
+                "children": children,
+            }
+
+        return export_node(self.root)
+
     def _build_tree(
         self,
         *,
@@ -226,16 +256,18 @@ class ID3Classifier:
             depth=depth,
         )
 
-        if (
-            len(class_counts) == 1
-            or not available_features
-            or (self.max_depth is not None and depth >= self.max_depth)
-        ):
+        # Các trường hợp dừng đều dùng nhãn đa số đã lưu trong node.
+        if len(class_counts) == 1 or not available_features:
+            return node
+        if len(rows) < self.min_samples_split:
+            return node
+        if self.max_depth is not None and depth >= self.max_depth:
             return node
 
-        feature = select_best_feature(rows, labels, available_features)
-        gain = information_gain(rows, labels, feature)
-        if gain < self.min_gain + _EPSILON:
+        feature, gain = _select_best_feature_with_gain(
+            rows, labels, available_features
+        )
+        if gain <= 0 or gain < self.min_gain:
             return node
 
         node.feature = feature
