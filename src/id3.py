@@ -1,11 +1,13 @@
 """Cây quyết định ID3 cho dữ liệu phân loại rời rạc.
+<<<<<<< Updated upstream
 
 Các thuật toán không phụ thuộc vào pandas. Nếu không truyền ``feature_order``,
 mô-đun dùng ``schema.FEATURES`` (thứ tự khai báo tại ``src/schema.py``).
 Thứ tự này được dùng để phá vỡ thế hòa khi nhiều đặc trưng có cùng
 Information Gain.
+=======
+>>>>>>> Stashed changes
 """
-
 from __future__ import annotations
 
 from collections import Counter
